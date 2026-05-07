@@ -5,16 +5,13 @@ from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from scanner import Scanner
 from translator import Translator
-
 try:
     from antlr_parser_adapter import ANTLRParserAdapter
     HAS_ANTLR = True
 except ImportError:
     HAS_ANTLR = False
 
-
 def suppress_console_output():
-    # В режиме GUI не выводим служебные сообщения в консоль.
     try:
         devnull = open(os.devnull, 'w', encoding='utf-8')
         sys.stdout = devnull
@@ -22,8 +19,8 @@ def suppress_console_output():
     except Exception:
         pass
 
-
 class SyntaxErrorHighlight(QSyntaxHighlighter):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.error_positions = []
@@ -69,8 +66,8 @@ class SyntaxErrorHighlight(QSyntaxHighlighter):
                 fmt = self.active_error_format if i == self.active_error_index else self.error_format
                 self.setFormat(col - 1, max(length, 1), fmt)
 
-
 class LineNumberArea(QWidget):
+
     def __init__(self, editor):
         super().__init__(editor)
         self.code_editor = editor
@@ -81,8 +78,8 @@ class LineNumberArea(QWidget):
     def paintEvent(self, event):
         self.code_editor.lineNumberAreaPaintEvent(event)
 
-
 class CodeEditor(QPlainTextEdit):
+
     def __init__(self):
         super().__init__()
         self.line_number_area = LineNumberArea(self)
@@ -125,8 +122,7 @@ class CodeEditor(QPlainTextEdit):
             if block.isVisible() and bottom >= event.rect().top():
                 number = str(block_number + 1)
                 painter.setPen(QColor(220, 220, 220))
-                painter.drawText(0, int(top), self.line_number_area.width() - 2,
-                                 self.fontMetrics().height(), Qt.AlignmentFlag.AlignRight, number)
+                painter.drawText(0, int(top), self.line_number_area.width() - 2, self.fontMetrics().height(), Qt.AlignmentFlag.AlignRight, number)
             block = block.next()
             top = bottom
             bottom = top + self.blockBoundingRect(block).height()
@@ -161,35 +157,32 @@ class CodeEditor(QPlainTextEdit):
                     main_window.open_file_with_path(file_path)
                     break
 
-
 class SyntaxHighlighter(QSyntaxHighlighter):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.highlighting_rules = []
-        keywords = [
-            # Поддерживаемая конструкция варианта 8 (Scala)
-            'val', 'Complex'
-        ]
+        keywords = ['val', 'Complex']
         keyword_format = QTextCharFormat()
         keyword_format.setForeground(QColor('#FFA500'))
         keyword_format.setFontWeight(QFont.Weight.Bold)
         for keyword in keywords:
-            pattern = QRegularExpression(r'\b' + keyword + r'\b')
+            pattern = QRegularExpression('\\b' + keyword + '\\b')
             rule = (pattern, keyword_format)
             self.highlighting_rules.append(rule)
         string_format = QTextCharFormat()
         string_format.setForeground(QColor('#98FB98'))
-        pattern = QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"|\'[^\'\\]*(\\.[^\'\\]*)*\'')
+        pattern = QRegularExpression('"[^"\\\\]*(\\\\.[^"\\\\]*)*"|\\\'[^\\\'\\\\]*(\\\\.[^\\\'\\\\]*)*\\\'')
         rule = (pattern, string_format)
         self.highlighting_rules.append(rule)
         comment_format = QTextCharFormat()
         comment_format.setForeground(QColor('#BC8F8F'))
-        pattern = QRegularExpression(r'//.*')
+        pattern = QRegularExpression('//.*')
         rule = (pattern, comment_format)
         self.highlighting_rules.append(rule)
         number_format = QTextCharFormat()
         number_format.setForeground(QColor('#B5CEA8'))
-        pattern = QRegularExpression(r'\b[0-9]+(\.[0-9]+)?i?\b')
+        pattern = QRegularExpression('\\b[0-9]+(\\.[0-9]+)?i?\\b')
         rule = (pattern, number_format)
         self.highlighting_rules.append(rule)
 
@@ -200,21 +193,14 @@ class SyntaxHighlighter(QSyntaxHighlighter):
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), fmt)
 
-
 class EditorTab(QWidget):
+
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.code_editor = CodeEditor()
-        self.code_editor.setStyleSheet("""
-            QPlainTextEdit {
-                border: 2px solid #FFA500;
-                border-radius: 5px;
-                background-color: #1e1e1e;
-                selection-background-color: #FFA500;
-            }
-        """)
+        self.code_editor.setStyleSheet('\n            QPlainTextEdit {\n                border: 2px solid #FFA500;\n                border-radius: 5px;\n                background-color: #1e1e1e;\n                selection-background-color: #FFA500;\n            }\n        ')
         self.highlighter = SyntaxHighlighter(self.code_editor.document())
         self.error_highlighter = SyntaxErrorHighlight(self.code_editor.document())
         self.code_editor.textChanged.connect(self.text_changed)
@@ -232,8 +218,8 @@ class EditorTab(QWidget):
         self.code_editor.setPlainText(text)
         self.text_modified = False
 
-
 class TokenResultTab(QWidget):
+
     def __init__(self, tr):
         super().__init__()
         self.tr = tr
@@ -246,29 +232,7 @@ class TokenResultTab(QWidget):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setStyleSheet("""
-            QTableWidget {
-                background-color: #2b2b2b;
-                color: #ffffff;
-                gridline-color: #FFA500;
-                border: 2px solid #FFA500;
-                border-radius: 5px;
-            }
-            QTableWidget::item {
-                padding: 5px;
-            }
-            QTableWidget::item:selected {
-                background-color: #FFA500;
-                color: #000000;
-            }
-            QHeaderView::section {
-                background-color: #404040;
-                color: #FFA500;
-                padding: 8px;
-                border: 1px solid #FFA500;
-                font-weight: bold;
-            }
-        """)
+        self.table.setStyleSheet('\n            QTableWidget {\n                background-color: #2b2b2b;\n                color: #ffffff;\n                gridline-color: #FFA500;\n                border: 2px solid #FFA500;\n                border-radius: 5px;\n            }\n            QTableWidget::item {\n                padding: 5px;\n            }\n            QTableWidget::item:selected {\n                background-color: #FFA500;\n                color: #000000;\n            }\n            QHeaderView::section {\n                background-color: #404040;\n                color: #FFA500;\n                padding: 8px;\n                border: 1px solid #FFA500;\n                font-weight: bold;\n            }\n        ')
         layout.addWidget(self.table)
 
     def set_language(self, lang):
@@ -276,12 +240,7 @@ class TokenResultTab(QWidget):
         self.update_headers()
 
     def update_headers(self):
-        self.table.setHorizontalHeaderLabels([
-            self.tr('Тип'),
-            self.tr('Фрагмент'),
-            self.tr('Местоположение'),
-            self.tr('Описание'),
-        ])
+        self.table.setHorizontalHeaderLabels([self.tr('Тип'), self.tr('Фрагмент'), self.tr('Местоположение'), self.tr('Описание')])
 
     def clear_results(self):
         self.table.setRowCount(0)
@@ -294,8 +253,8 @@ class TokenResultTab(QWidget):
         self.table.setItem(row_count, 2, QTableWidgetItem(lexeme))
         self.table.setItem(row_count, 3, QTableWidgetItem(location))
 
-
 class ErrorResultTab(QWidget):
+
     def __init__(self, tr):
         super().__init__()
         self.tr = tr
@@ -310,31 +269,9 @@ class ErrorResultTab(QWidget):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setStyleSheet("""
-            QTableWidget {
-                background-color: #2b2b2b;
-                color: #ffffff;
-                gridline-color: #FFA500;
-                border: 2px solid #FFA500;
-                border-radius: 5px;
-            }
-            QTableWidget::item {
-                padding: 5px;
-            }
-            QTableWidget::item:selected {
-                background-color: #FFA500;
-                color: #000000;
-            }
-            QHeaderView::section {
-                background-color: #404040;
-                color: #FFA500;
-                padding: 8px;
-                border: 1px solid #FFA500;
-                font-weight: bold;
-            }
-        """)
+        self.table.setStyleSheet('\n            QTableWidget {\n                background-color: #2b2b2b;\n                color: #ffffff;\n                gridline-color: #FFA500;\n                border: 2px solid #FFA500;\n                border-radius: 5px;\n            }\n            QTableWidget::item {\n                padding: 5px;\n            }\n            QTableWidget::item:selected {\n                background-color: #FFA500;\n                color: #000000;\n            }\n            QHeaderView::section {\n                background-color: #404040;\n                color: #FFA500;\n                padding: 8px;\n                border: 1px solid #FFA500;\n                font-weight: bold;\n            }\n        ')
         self.footer = QLabel()
-        self.footer.setStyleSheet("color: #FFA500; padding: 6px 4px; font-weight: bold;")
+        self.footer.setStyleSheet('color: #FFA500; padding: 6px 4px; font-weight: bold;')
         layout.addWidget(self.table)
         layout.addWidget(self.footer)
         self.table.itemSelectionChanged.connect(self.on_row_selected)
@@ -347,40 +284,23 @@ class ErrorResultTab(QWidget):
         self.update_headers()
 
     def update_headers(self):
-        self.table.setHorizontalHeaderLabels([
-            self.tr('Тип'),
-            self.tr('Фрагмент'),
-            self.tr('Местоположение'),
-            self.tr('Описание'),
-            self.tr('Строка')
-        ])
+        self.table.setHorizontalHeaderLabels([self.tr('Тип'), self.tr('Фрагмент'), self.tr('Местоположение'), self.tr('Описание'), self.tr('Строка')])
 
     def clear_results(self):
         self.table.setRowCount(0)
         self.errors_data = []
-        self.footer.setText("")
+        self.footer.setText('')
 
     def add_error(self, error_type, fragment, location, description):
         row_count = self.table.rowCount()
         self.table.insertRow(row_count)
-        items = [
-            QTableWidgetItem(error_type),
-            QTableWidgetItem(fragment),
-            QTableWidgetItem(location),
-            QTableWidgetItem(description),
-        ]
+        items = [QTableWidgetItem(error_type), QTableWidgetItem(fragment), QTableWidgetItem(location), QTableWidgetItem(description)]
         for col, item in enumerate(items):
             item.setForeground(QColor('#F48771'))
             self.table.setItem(row_count, col, item)
-        self.errors_data.append({
-            'type': error_type,
-            'fragment': fragment,
-            'location': location,
-            'description': description,
-            'row': row_count
-        })
+        self.errors_data.append({'type': error_type, 'fragment': fragment, 'location': location, 'description': description, 'row': row_count})
         self.footer.setText(f"{self.tr('Всего ошибок:')} {row_count + 1}")
-    
+
     def on_row_selected(self):
         if not self.main_window:
             return
@@ -391,16 +311,16 @@ class ErrorResultTab(QWidget):
         location = err['location']
         import re
         if self.current_lang == 'ru':
-            match = re.search(r'строка (\d+), позиция (\d+)', location)
+            match = re.search('строка (\\d+), позиция (\\d+)', location)
         else:
-            match = re.search(r'line (\d+), position (\d+)', location)
+            match = re.search('line (\\d+), position (\\d+)', location)
         if match:
             line = int(match.group(1))
             col = int(match.group(2))
             self.main_window.go_to_position(line, col, row)
 
-
 class TextEditor(QMainWindow):
+
     def __init__(self):
         super().__init__()
         self.translator = Translator()
@@ -414,32 +334,7 @@ class TextEditor(QMainWindow):
         self.editor_tabs.currentChanged.connect(self.update_cursor_position)
 
     def initUI(self):
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #2b2b2b;
-            }
-            QTabWidget::pane {
-                border: 2px solid #FFA500;
-                border-radius: 5px;
-                top: -1px;
-            }
-            QTabBar::tab {
-                background-color: #404040;
-                color: #ffffff;
-                padding: 8px 12px;
-                margin-right: 2px;
-                border-top-left-radius: 5px;
-                border-top-right-radius: 5px;
-            }
-            QTabBar::tab:selected {
-                background-color: #FFA500;
-                color: #000000;
-                font-weight: bold;
-            }
-            QTabBar::tab:hover {
-                background-color: #606060;
-            }
-        """)
+        self.setStyleSheet('\n            QMainWindow {\n                background-color: #2b2b2b;\n            }\n            QTabWidget::pane {\n                border: 2px solid #FFA500;\n                border-radius: 5px;\n                top: -1px;\n            }\n            QTabBar::tab {\n                background-color: #404040;\n                color: #ffffff;\n                padding: 8px 12px;\n                margin-right: 2px;\n                border-top-left-radius: 5px;\n                border-top-right-radius: 5px;\n            }\n            QTabBar::tab:selected {\n                background-color: #FFA500;\n                color: #000000;\n                font-weight: bold;\n            }\n            QTabBar::tab:hover {\n                background-color: #606060;\n            }\n        ')
         self.editor_tabs = QTabWidget()
         self.editor_tabs.setTabsClosable(True)
         self.editor_tabs.tabCloseRequested.connect(self.close_editor_tab)
@@ -448,36 +343,19 @@ class TextEditor(QMainWindow):
         text_result_layout = QVBoxLayout(self.text_result_tab)
         self.result_text = QTextEdit()
         self.result_text.setReadOnly(True)
-        self.result_text.setStyleSheet("""
-            QTextEdit {
-                background-color: #1e1e1e;
-                color: #ffffff;
-                border: 2px solid #FFA500;
-                border-radius: 5px;
-                padding: 5px;
-                selection-background-color: #FFA500;
-            }
-        """)
+        self.result_text.setStyleSheet('\n            QTextEdit {\n                background-color: #1e1e1e;\n                color: #ffffff;\n                border: 2px solid #FFA500;\n                border-radius: 5px;\n                padding: 5px;\n                selection-background-color: #FFA500;\n            }\n        ')
         text_result_layout.addWidget(self.result_text)
         self.tokens_tab = TokenResultTab(self.tr)
         self.error_table_tab = ErrorResultTab(self.tr)
         self.error_table_tab.set_main_window(self)
-        self.result_tabs.addTab(self.text_result_tab, self.tr("Текстовый вывод"))
-        self.result_tabs.addTab(self.tokens_tab, self.tr("Лексемы"))
-        self.result_tabs.addTab(self.error_table_tab, self.tr("Ошибки"))
+        self.result_tabs.addTab(self.text_result_tab, self.tr('Текстовый вывод'))
+        self.result_tabs.addTab(self.tokens_tab, self.tr('Лексемы'))
+        self.result_tabs.addTab(self.error_table_tab, self.tr('Ошибки'))
         splitter = QSplitter(Qt.Orientation.Vertical)
         splitter.addWidget(self.editor_tabs)
         splitter.addWidget(self.result_tabs)
         splitter.setSizes([400, 300])
-        splitter.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #FFA500;
-                height: 3px;
-            }
-            QSplitter::handle:hover {
-                background-color: #FFB52E;
-            }
-        """)
+        splitter.setStyleSheet('\n            QSplitter::handle {\n                background-color: #FFA500;\n                height: 3px;\n            }\n            QSplitter::handle:hover {\n                background-color: #FFB52E;\n            }\n        ')
         central = QWidget()
         layout = QVBoxLayout(central)
         layout.addWidget(splitter)
@@ -486,26 +364,19 @@ class TextEditor(QMainWindow):
         self.create_menu()
         self.create_toolbar()
         self.create_status_bar()
-        self.setWindowTitle(self.tr("Текстовый редактор с языковым процессором"))
+        self.setWindowTitle(self.tr('Текстовый редактор с языковым процессором'))
         self.resize(1000, 700)
         self.setMinimumSize(600, 400)
 
     def create_status_bar(self):
         self.status_bar = self.statusBar()
-        self.status_bar.setStyleSheet("""
-            QStatusBar {
-                background-color: #404040;
-                color: #FFA500;
-                border-top: 2px solid #FFA500;
-                font-weight: bold;
-            }
-        """)
+        self.status_bar.setStyleSheet('\n            QStatusBar {\n                background-color: #404040;\n                color: #FFA500;\n                border-top: 2px solid #FFA500;\n                font-weight: bold;\n            }\n        ')
         self.status_bar.showMessage(self.tr('Готов'))
         self.cursor_position_label = QLabel(self.tr('Строка: 1, Столбец: 1'))
         self.file_info_label = QLabel(self.tr('Новый файл'))
         self.encoding_label = QLabel(self.tr('UTF-8'))
-        self.parser_type_label = QLabel("Parser: Python")
-        self.parser_type_label.setStyleSheet("color: #FFA500; font-weight: bold; margin-right: 10px;")
+        self.parser_type_label = QLabel('Parser: Python')
+        self.parser_type_label.setStyleSheet('color: #FFA500; font-weight: bold; margin-right: 10px;')
         self.status_bar.addPermanentWidget(self.parser_type_label)
         self.status_bar.addPermanentWidget(self.cursor_position_label)
         self.status_bar.addPermanentWidget(self.file_info_label)
@@ -555,13 +426,7 @@ class TextEditor(QMainWindow):
             return
         tab = self.editor_tabs.widget(index)
         if tab.text_modified:
-            reply = QMessageBox.question(
-                self, self.tr('Сохранение'),
-                self.tr('Сохранить изменения в документе?'),
-                QMessageBox.StandardButton.Save |
-                QMessageBox.StandardButton.Discard |
-                QMessageBox.StandardButton.Cancel
-            )
+            reply = QMessageBox.question(self, self.tr('Сохранение'), self.tr('Сохранить изменения в документе?'), QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel)
             if reply == QMessageBox.StandardButton.Save:
                 self.save_current_file()
             elif reply == QMessageBox.StandardButton.Cancel:
@@ -588,26 +453,7 @@ class TextEditor(QMainWindow):
     def create_menu(self):
         menubar = self.menuBar()
         menubar.clear()
-        menubar.setStyleSheet("""
-            QMenuBar {
-                background-color: #404040;
-                color: #ffffff;
-                border-bottom: 2px solid #FFA500;
-            }
-            QMenuBar::item:selected {
-                background-color: #FFA500;
-                color: #000000;
-            }
-            QMenu {
-                background-color: #404040;
-                color: #ffffff;
-                border: 2px solid #FFA500;
-            }
-            QMenu::item:selected {
-                background-color: #FFA500;
-                color: #000000;
-            }
-        """)
+        menubar.setStyleSheet('\n            QMenuBar {\n                background-color: #404040;\n                color: #ffffff;\n                border-bottom: 2px solid #FFA500;\n            }\n            QMenuBar::item:selected {\n                background-color: #FFA500;\n                color: #000000;\n            }\n            QMenu {\n                background-color: #404040;\n                color: #ffffff;\n                border: 2px solid #FFA500;\n            }\n            QMenu::item:selected {\n                background-color: #FFA500;\n                color: #000000;\n            }\n        ')
         file_menu = menubar.addMenu(self.tr('Файл'))
         new_act = QAction(self.tr('Создать'), self)
         new_act.setShortcut('Ctrl+N')
@@ -679,20 +525,16 @@ class TextEditor(QMainWindow):
         dec_res_font.triggered.connect(lambda: self.change_result_font_size(-1))
         view_menu.addAction(dec_res_font)
         text_menu = menubar.addMenu(self.tr('Текст'))
-        text_items = [
-            'Постановка задачи', 'Грамматика', 'Классификация грамматики',
-            'Метод анализа', 'Тестовый пример', 'Список литературы',
-            'Исходный код программы'
-        ]
+        text_items = ['Постановка задачи', 'Грамматика', 'Классификация грамматики', 'Метод анализа', 'Тестовый пример', 'Список литературы', 'Исходный код программы']
         for item in text_items:
             act = QAction(self.tr(item), self)
             act.triggered.connect(lambda _, t=item: self.show_text_info(t))
             text_menu.addAction(act)
-        parser_menu = menubar.addMenu("Parser")
-        python_act = QAction("Python (automaton)", self)
+        parser_menu = menubar.addMenu('Parser')
+        python_act = QAction('Python (automaton)', self)
         python_act.triggered.connect(lambda: self.set_parser(False))
         parser_menu.addAction(python_act)
-        antlr_act = QAction("ANTLR", self)
+        antlr_act = QAction('ANTLR', self)
         antlr_act.triggered.connect(lambda: self.set_parser(True))
         parser_menu.addAction(antlr_act)
         run_menu = menubar.addMenu(self.tr('Пуск'))
@@ -720,28 +562,7 @@ class TextEditor(QMainWindow):
         self.toolbar = self.addToolBar(self.tr('Инструменты'))
         self.toolbar.setMovable(False)
         self.toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        self.toolbar.setStyleSheet("""
-            QToolBar {
-                background-color: #404040;
-                border-bottom: 2px solid #FFA500;
-                spacing: 5px;
-            }
-            QToolButton {
-                background-color: #505050;
-                color: #ffffff;
-                border: 1px solid #FFA500;
-                border-radius: 3px;
-                padding: 5px;
-                min-width: 60px;
-            }
-            QToolButton:hover {
-                background-color: #FFA500;
-                color: #000000;
-            }
-            QToolButton:pressed {
-                background-color: #FFB52E;
-            }
-        """)
+        self.toolbar.setStyleSheet('\n            QToolBar {\n                background-color: #404040;\n                border-bottom: 2px solid #FFA500;\n                spacing: 5px;\n            }\n            QToolButton {\n                background-color: #505050;\n                color: #ffffff;\n                border: 1px solid #FFA500;\n                border-radius: 3px;\n                padding: 5px;\n                min-width: 60px;\n            }\n            QToolButton:hover {\n                background-color: #FFA500;\n                color: #000000;\n            }\n            QToolButton:pressed {\n                background-color: #FFB52E;\n            }\n        ')
         self.update_toolbar()
 
     def update_toolbar(self):
@@ -784,23 +605,7 @@ class TextEditor(QMainWindow):
                 return QIcon(pixmap)
             else:
                 return QIcon.fromTheme(name)
-
-        actions = [
-            ('document-new', self.tr('Создать'), lambda: self.add_new_editor_tab()),
-            ('document-open', self.tr('Открыть'), self.open_file),
-            ('document-save', self.tr('Сохранить'), self.save_file),
-            None,
-            ('edit-undo', self.tr('Отменить'), lambda: self.get_current_editor().code_editor.undo() if self.get_current_editor() else None),
-            ('edit-redo', self.tr('Повторить'), lambda: self.get_current_editor().code_editor.redo() if self.get_current_editor() else None),
-            None,
-            ('edit-copy', self.tr('Копировать'), lambda: self.get_current_editor().code_editor.copy() if self.get_current_editor() else None),
-            ('edit-cut', self.tr('Вырезать'), lambda: self.get_current_editor().code_editor.cut() if self.get_current_editor() else None),
-            ('edit-paste', self.tr('Вставить'), lambda: self.get_current_editor().code_editor.paste() if self.get_current_editor() else None),
-            None,
-            ('system-run', self.tr('Запуск'), self.start_analyzer),
-            ('help-contents', self.tr('Справка'), self.show_help),
-            ('help-about', self.tr('О программе'), self.show_about),
-        ]
+        actions = [('document-new', self.tr('Создать'), lambda: self.add_new_editor_tab()), ('document-open', self.tr('Открыть'), self.open_file), ('document-save', self.tr('Сохранить'), self.save_file), None, ('edit-undo', self.tr('Отменить'), lambda: self.get_current_editor().code_editor.undo() if self.get_current_editor() else None), ('edit-redo', self.tr('Повторить'), lambda: self.get_current_editor().code_editor.redo() if self.get_current_editor() else None), None, ('edit-copy', self.tr('Копировать'), lambda: self.get_current_editor().code_editor.copy() if self.get_current_editor() else None), ('edit-cut', self.tr('Вырезать'), lambda: self.get_current_editor().code_editor.cut() if self.get_current_editor() else None), ('edit-paste', self.tr('Вставить'), lambda: self.get_current_editor().code_editor.paste() if self.get_current_editor() else None), None, ('system-run', self.tr('Запуск'), self.start_analyzer), ('help-contents', self.tr('Справка'), self.show_help), ('help-about', self.tr('О программе'), self.show_about)]
         for item in actions:
             if item is None:
                 self.toolbar.addSeparator()
@@ -812,13 +617,13 @@ class TextEditor(QMainWindow):
             self.toolbar.addAction(act)
 
     def retranslateUi(self):
-        self.setWindowTitle(self.tr("Текстовый редактор с языковым процессором"))
+        self.setWindowTitle(self.tr('Текстовый редактор с языковым процессором'))
         menubar = self.menuBar()
         menubar.clear()
         self.create_menu()
-        self.result_tabs.setTabText(0, self.tr("Текстовый вывод"))
-        self.result_tabs.setTabText(1, self.tr("Лексемы"))
-        self.result_tabs.setTabText(2, self.tr("Ошибки"))
+        self.result_tabs.setTabText(0, self.tr('Текстовый вывод'))
+        self.result_tabs.setTabText(1, self.tr('Лексемы'))
+        self.result_tabs.setTabText(2, self.tr('Ошибки'))
         self.tokens_tab.update_headers()
         self.error_table_tab.update_headers()
         self.status_bar.showMessage(self.tr('Готов'))
@@ -826,7 +631,7 @@ class TextEditor(QMainWindow):
         self.update_file_info(None)
         for i in range(self.editor_tabs.count()):
             tab = self.editor_tabs.widget(i)
-            if tab and not tab.current_file:
+            if tab and (not tab.current_file):
                 current_text = self.editor_tabs.tabText(i).rstrip('*')
                 if current_text.startswith('Новый файл') or current_text.startswith('Untitled'):
                     base_name = self.tr('Новый файл')
@@ -835,7 +640,7 @@ class TextEditor(QMainWindow):
                     else:
                         try:
                             num = current_text.split()[-1]
-                            new_text = f"{base_name} {num}"
+                            new_text = f'{base_name} {num}'
                         except:
                             new_text = base_name
                     if self.editor_tabs.tabText(i).endswith('*'):
@@ -851,17 +656,13 @@ class TextEditor(QMainWindow):
         tab = self.get_current_editor()
         if tab and tab.get_text().strip():
             self.start_analyzer()
-        QMessageBox.information(
-            self,
-            self.tr('Смена языка'),
-            self.tr('Язык изменен на русский') if lang == 'ru' else self.tr('Язык изменен на английский')
-        )
+        QMessageBox.information(self, self.tr('Смена языка'), self.tr('Язык изменен на русский') if lang == 'ru' else self.tr('Язык изменен на английский'))
 
     def set_parser(self, use_antlr):
         self.use_antlr_parser = use_antlr
-        name = "ANTLR" if use_antlr else "Python"
-        self.parser_type_label.setText(f"Parser: {name}")
-        QMessageBox.information(self, "Parser", f"Selected: {name}")
+        name = 'ANTLR' if use_antlr else 'Python'
+        self.parser_type_label.setText(f'Parser: {name}')
+        QMessageBox.information(self, 'Parser', f'Selected: {name}')
 
     def open_file_with_path(self, file_path):
         try:
@@ -874,10 +675,7 @@ class TextEditor(QMainWindow):
             QMessageBox.critical(self, self.tr('Ошибка'), f"{self.tr('Не удалось открыть файл:')} {str(e)}")
 
     def open_file(self):
-        file_name, _ = QFileDialog.getOpenFileName(
-            self, self.tr('Открыть файл'), '',
-            'Текстовые файлы (*.txt);;Все файлы (*)'
-        )
+        file_name, _ = QFileDialog.getOpenFileName(self, self.tr('Открыть файл'), '', 'Текстовые файлы (*.txt);;Все файлы (*)')
         if file_name:
             self.open_file_with_path(file_name)
 
@@ -904,10 +702,7 @@ class TextEditor(QMainWindow):
         self.save_current_file()
 
     def save_as_file(self):
-        file_name, _ = QFileDialog.getSaveFileName(
-            self, self.tr('Сохранить как'), '',
-            'Текстовые файлы (*.txt);;Все файлы (*)'
-        )
+        file_name, _ = QFileDialog.getSaveFileName(self, self.tr('Сохранить как'), '', 'Текстовые файлы (*.txt);;Все файлы (*)')
         if file_name:
             tab = self.get_current_editor()
             if tab:
@@ -917,21 +712,7 @@ class TextEditor(QMainWindow):
                 self.update_file_info(file_name)
 
     def show_text_info(self, text_type):
-        info_texts = {
-            'Постановка задачи': (
-                'Разработать лексический и синтаксический анализатор для объявления комплексного числа '
-                'в языке Scala (вариант 8) и интегрировать его в текстовый редактор.'
-            ),
-            'Грамматика': (
-                "Поддерживается единственная конструкция объявления:\n"
-                "val <id> = Complex(<num>, <num>);"
-            ),
-            'Классификация грамматики': 'Грамматика является автоматной (праворекурсивные продукции).',
-            'Метод анализа': 'Конечный автомат с нейтрализацией ошибок (синхронизация по токену \';\').',
-            'Тестовый пример': 'val z = Complex(1.5, 2.5);',
-            'Список литературы': '1. Ахо А., Сети Р., Ульман Дж. Компиляторы.\n2. Scala Language Specification.',
-            'Исходный код программы': 'main.py, scanner.py, parser.py, ScalaComplex.g4, antlr_parser_adapter.py'
-        }
+        info_texts = {'Постановка задачи': 'Разработать лексический и синтаксический анализатор для объявления комплексного числа в языке Scala (вариант 8) и интегрировать его в текстовый редактор.', 'Грамматика': 'Поддерживается единственная конструкция объявления:\nval <id> = Complex(<num>, <num>);', 'Классификация грамматики': 'Грамматика является автоматной (праворекурсивные продукции).', 'Метод анализа': "Конечный автомат с нейтрализацией ошибок (синхронизация по токену ';').", 'Тестовый пример': 'val z = Complex(1.5, 2.5);', 'Список литературы': '1. Ахо А., Сети Р., Ульман Дж. Компиляторы.\n2. Scala Language Specification.', 'Исходный код программы': 'main.py, scanner.py, parser.py, ScalaComplex.g4, antlr_parser_adapter.py'}
         QMessageBox.information(self, self.tr(text_type), info_texts[text_type])
 
     def go_to_position(self, line, col, error_index=-1):
@@ -968,144 +749,75 @@ class TextEditor(QMainWindow):
         results = self.scanner.analyze(text)
         current_lang = self.translator.lang
         if current_lang == 'ru':
-            tokens_text = f"=== РЕЗУЛЬТАТЫ ЛЕКСИЧЕСКОГО АНАЛИЗА ===\n\n"
+            tokens_text = f'=== РЕЗУЛЬТАТЫ ЛЕКСИЧЕСКОГО АНАЛИЗА ===\n\n'
         else:
-            tokens_text = f"=== LEXICAL ANALYSIS RESULTS ===\n\n"
+            tokens_text = f'=== LEXICAL ANALYSIS RESULTS ===\n\n'
         tokens_text += f"{self.tr('Найдено лексем:')} {len(results['tokens'])}\n"
         tokens_text += f"{self.tr('Найдено ошибок:')} {len(results['errors'])}\n\n"
         if results['tokens']:
             tokens_text += f"{self.tr('Список лексем:')}\n"
-            tokens_text += "-" * 80 + "\n"
+            tokens_text += '-' * 80 + '\n'
             for token in results['tokens']:
                 display_type = token.get_display_type(current_lang)
                 display_value = token.get_display_value(current_lang)
                 if current_lang == 'ru':
-                    location = f"строка {token.line:2d}, {token.start:2d}-{token.end:2d}"
+                    location = f'строка {token.line:2d}, {token.start:2d}-{token.end:2d}'
                 else:
-                    location = f"line {token.line:2d}, {token.start:2d}-{token.end:2d}"
+                    location = f'line {token.line:2d}, {token.start:2d}-{token.end:2d}'
                 tokens_text += f"{token.code:3d} | {display_type:22} | '{display_value:12}' | {location}\n"
         if results['errors']:
             tokens_text += f"\n{self.tr('Список лексических ошибок:')}\n"
-            tokens_text += "-" * 80 + "\n"
+            tokens_text += '-' * 80 + '\n'
             for error in results['errors']:
                 if current_lang == 'ru':
                     tokens_text += f"{self.tr('Строка')} {error.line:2d}, {self.tr('Позиция')} {error.start:2d}: {error.value}\n"
                 else:
-                    tokens_text += f"Line {error.line:2d}, Position {error.start:2d}: {error.value}\n"
+                    tokens_text += f'Line {error.line:2d}, Position {error.start:2d}: {error.value}\n'
         if self.use_antlr_parser and HAS_ANTLR:
-            parser_name = "ANTLR"
+            parser_name = 'ANTLR'
             try:
                 parse_result = ANTLRParserAdapter(text, lang=current_lang).parse()
             except Exception as e:
                 from parser import SyntaxErrorRecord, ParseResult
-                parse_result = ParseResult(
-                    ok=False,
-                    errors=[SyntaxErrorRecord(
-                        fragment="ERROR", line=1, col=1,
-                        message=f"ANTLR error: {str(e)}"
-                    )]
-                )
+                parse_result = ParseResult(ok=False, errors=[SyntaxErrorRecord(fragment='ERROR', line=1, col=1, message=f'ANTLR error: {str(e)}')])
         else:
             from parser import Parser
-            parser_name = "Python"
+            parser_name = 'Python'
             parse_result = Parser(results['tokens'], lang=current_lang).parse()
         tokens_text += f"\n\n{'=' * 50}\n"
-        tokens_text += f"СИНТАКСИЧЕСКИЙ АНАЛИЗ [{parser_name}]\n"
+        tokens_text += f'СИНТАКСИЧЕСКИЙ АНАЛИЗ [{parser_name}]\n'
         tokens_text += f"{'=' * 50}\n"
         if parse_result.ok:
-            tokens_text += f"Синтаксических ошибок не обнаружено.\n"
+            tokens_text += f'Синтаксических ошибок не обнаружено.\n'
         else:
-            tokens_text += f"Найдено синтаксических ошибок: {len(parse_result.errors)}\n"
+            tokens_text += f'Найдено синтаксических ошибок: {len(parse_result.errors)}\n'
             for i, err in enumerate(parse_result.errors, 1):
                 loc = err.location_ru() if current_lang == 'ru' else err.location_en()
-                tokens_text += f"  {i}. [{loc}] {err.fragment}: {err.message}\n"
+                tokens_text += f'  {i}. [{loc}] {err.fragment}: {err.message}\n'
         self.result_text.setPlainText(tokens_text)
         for token in results['tokens']:
             self.tokens_tab.add_result(*token.to_table_row(current_lang))
         all_errors = []
         for error in results['errors']:
             if current_lang == 'ru':
-                location = f"строка {error.line}, позиция {error.start}"
+                location = f'строка {error.line}, позиция {error.start}'
             else:
-                location = f"line {error.line}, position {error.start}"
-            all_errors.append({
-                'type': 'Lexical',
-                'fragment': error.value,
-                'location': location,
-                'description': error.value,
-                'line': error.line,
-                'col': error.start
-            })
+                location = f'line {error.line}, position {error.start}'
+            all_errors.append({'type': 'Lexical', 'fragment': error.value, 'location': location, 'description': error.value, 'line': error.line, 'col': error.start})
         for err in parse_result.errors:
             loc = err.location_ru() if current_lang == 'ru' else err.location_en()
-            all_errors.append({
-                'type': 'Syntax',
-                'fragment': err.fragment,
-                'location': loc,
-                'description': err.message,
-                'line': err.line,
-                'col': err.col
-            })
+            all_errors.append({'type': 'Syntax', 'fragment': err.fragment, 'location': loc, 'description': err.message, 'line': err.line, 'col': err.col})
         for err in all_errors:
-            self.error_table_tab.add_error(
-                err['type'],
-                err['fragment'],
-                err['location'],
-                err['description']
-            )
+            self.error_table_tab.add_error(err['type'], err['fragment'], err['location'], err['description'])
         tab.error_highlighter.set_errors(all_errors)
-        self.status_bar.showMessage(
-            f"{self.tr('Анализ завершен')}. "
-            f"{self.tr('Лексем:')} {len(results['tokens'])}, "
-            f"{self.tr('Ошибок всего:')} {len(all_errors)}"
-        )
+        self.status_bar.showMessage(f"{self.tr('Анализ завершен')}. {self.tr('Лексем:')} {len(results['tokens'])}, {self.tr('Ошибок всего:')} {len(all_errors)}")
 
     def show_help(self):
-        help_text = self.tr('=== СПРАВКА ПО ТЕКСТОВОМУ РЕДАКТОРУ ===') + '\n\n' + \
-                    self.tr('Функции меню "Файл":') + '\n' + \
-                    "- " + self.tr('Создать') + ": " + self.tr('Создать новый документ (Ctrl+N)') + "\n" + \
-                    "- " + self.tr('Открыть') + ": " + self.tr('Открыть существующий текстовый файл (Ctrl+O)') + "\n" + \
-                    "- " + self.tr('Сохранить') + ": " + self.tr('Сохранить текущий документ (Ctrl+S)') + "\n" + \
-                    "- " + self.tr('Сохранить как') + ": " + self.tr('Сохранить документ под новым именем (Ctrl+Shift+S)') + "\n" + \
-                    "- " + self.tr('Выход') + ": " + self.tr('Закрыть программу (Ctrl+Q)') + "\n\n" + \
-                    self.tr('Функции меню "Правка":') + '\n' + \
-                    "- " + self.tr('Отменить') + ": Ctrl+Z\n" + \
-                    "- " + self.tr('Повторить') + ": Ctrl+Y\n" + \
-                    "- " + self.tr('Вырезать') + ": Ctrl+X\n" + \
-                    "- " + self.tr('Копировать') + ": Ctrl+C\n" + \
-                    "- " + self.tr('Вставить') + ": Ctrl+V\n" + \
-                    "- " + self.tr('Удалить') + ": Del\n" + \
-                    "- " + self.tr('Выделить все') + ": Ctrl+A\n\n" + \
-                    self.tr('Функции меню "Вид":') + '\n' + \
-                    "- " + self.tr('Увеличить/уменьшить шрифт редактора') + " (Ctrl+= / Ctrl+-)\n" + \
-                    "- " + self.tr('Увеличить/уменьшить шрифт результатов') + " (Ctrl+Shift+= / Ctrl+Shift+-)\n\n" + \
-                    self.tr('Функции меню "Пуск":') + '\n' + \
-                    "- " + self.tr('Запуск анализатора') + ": F5\n\n" + \
-                    self.tr('Дополнительно:') + '\n' + \
-                    "- " + self.tr('Навигация по ошибкам: клик на ошибке в таблице') + "\n" + \
-                    "- " + self.tr('Выделение ошибок: красное подчеркивание в тексте') + "\n"
+        help_text = self.tr('=== СПРАВКА ПО ТЕКСТОВОМУ РЕДАКТОРУ ===') + '\n\n' + self.tr('Функции меню "Файл":') + '\n' + '- ' + self.tr('Создать') + ': ' + self.tr('Создать новый документ (Ctrl+N)') + '\n' + '- ' + self.tr('Открыть') + ': ' + self.tr('Открыть существующий текстовый файл (Ctrl+O)') + '\n' + '- ' + self.tr('Сохранить') + ': ' + self.tr('Сохранить текущий документ (Ctrl+S)') + '\n' + '- ' + self.tr('Сохранить как') + ': ' + self.tr('Сохранить документ под новым именем (Ctrl+Shift+S)') + '\n' + '- ' + self.tr('Выход') + ': ' + self.tr('Закрыть программу (Ctrl+Q)') + '\n\n' + self.tr('Функции меню "Правка":') + '\n' + '- ' + self.tr('Отменить') + ': Ctrl+Z\n' + '- ' + self.tr('Повторить') + ': Ctrl+Y\n' + '- ' + self.tr('Вырезать') + ': Ctrl+X\n' + '- ' + self.tr('Копировать') + ': Ctrl+C\n' + '- ' + self.tr('Вставить') + ': Ctrl+V\n' + '- ' + self.tr('Удалить') + ': Del\n' + '- ' + self.tr('Выделить все') + ': Ctrl+A\n\n' + self.tr('Функции меню "Вид":') + '\n' + '- ' + self.tr('Увеличить/уменьшить шрифт редактора') + ' (Ctrl+= / Ctrl+-)\n' + '- ' + self.tr('Увеличить/уменьшить шрифт результатов') + ' (Ctrl+Shift+= / Ctrl+Shift+-)\n\n' + self.tr('Функции меню "Пуск":') + '\n' + '- ' + self.tr('Запуск анализатора') + ': F5\n\n' + self.tr('Дополнительно:') + '\n' + '- ' + self.tr('Навигация по ошибкам: клик на ошибке в таблице') + '\n' + '- ' + self.tr('Выделение ошибок: красное подчеркивание в тексте') + '\n'
         dlg = QDialog(self)
         dlg.setWindowTitle(self.tr('Справка'))
         dlg.resize(650, 550)
-        dlg.setStyleSheet("""
-            QDialog { background-color: #2b2b2b; }
-            QTextEdit {
-                background-color: #1e1e1e;
-                color: #ffffff;
-                border: 2px solid #FFA500;
-                border-radius: 5px;
-                padding: 10px;
-            }
-            QPushButton {
-                background-color: #FFA500;
-                color: #000000;
-                border: none;
-                padding: 8px;
-                border-radius: 3px;
-                font-weight: bold;
-            }
-            QPushButton:hover { background-color: #FFB52E; }
-        """)
+        dlg.setStyleSheet('\n            QDialog { background-color: #2b2b2b; }\n            QTextEdit {\n                background-color: #1e1e1e;\n                color: #ffffff;\n                border: 2px solid #FFA500;\n                border-radius: 5px;\n                padding: 10px;\n            }\n            QPushButton {\n                background-color: #FFA500;\n                color: #000000;\n                border: none;\n                padding: 8px;\n                border-radius: 3px;\n                font-weight: bold;\n            }\n            QPushButton:hover { background-color: #FFB52E; }\n        ')
         lay = QVBoxLayout(dlg)
         te = QTextEdit()
         te.setReadOnly(True)
@@ -1117,30 +829,17 @@ class TextEditor(QMainWindow):
         dlg.exec()
 
     def show_about(self):
-        QMessageBox.about(
-            self,
-            self.tr('О программе'),
-            self.tr("Текстовый редактор с языковым процессором") + "\n\n" +
-            self.tr("Версия: 3.0 (Scala Complex Automaton Parser)") + "\n\n" +
-            self.tr("Автор: Васильев Антон Романович") + "\n" +
-            self.tr("Вариант 8: Объявление комплексного числа в Scala") + "\n\n" +
-            self.tr("(c) 2026")
-        )
+        QMessageBox.about(self, self.tr('О программе'), self.tr('Текстовый редактор с языковым процессором') + '\n\n' + self.tr('Версия: 3.0 (Scala Complex Automaton Parser)') + '\n\n' + self.tr('Автор: Васильев Антон Романович') + '\n' + self.tr('Вариант 8: Объявление комплексного числа в Scala') + '\n\n' + self.tr('(c) 2026'))
 
     def closeEvent(self, event):
         for i in range(self.editor_tabs.count()):
             tab = self.editor_tabs.widget(i)
             if tab.text_modified:
-                reply = QMessageBox.question(
-                    self, self.tr('Сохранение'),
-                    self.tr('Есть несохраненные изменения. Закрыть программу?'),
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
+                reply = QMessageBox.question(self, self.tr('Сохранение'), self.tr('Есть несохраненные изменения. Закрыть программу?'), QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
                 if reply == QMessageBox.StandardButton.No:
                     event.ignore()
                     return
         event.accept()
-
 
 def main():
     suppress_console_output()
@@ -1160,7 +859,5 @@ def main():
     window = TextEditor()
     window.show()
     sys.exit(app.exec())
-
-
 if __name__ == '__main__':
     main()

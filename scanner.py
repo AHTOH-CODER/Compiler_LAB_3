@@ -71,7 +71,7 @@ class Scanner:
                 self._handle_whitespace()
             elif ch == '\n':
                 self._handle_newline()
-            elif ch.isdigit():
+            elif ch.isdigit() or (ch == '-' and self.index + 1 < len(self.text) and self.text[self.index + 1].isdigit()):
                 self._handle_number()
             elif ch.isalpha() or ch == '_':
                 self._handle_identifier_or_keyword()
@@ -107,6 +107,9 @@ class Scanner:
         pass
         start_pos = self.pos
         value = ''
+        if self.index < len(self.text) and self.text[self.index] == '-':
+            value += '-'
+            self._advance()
         while self.index < len(self.text) and self.text[self.index].isdigit():
             value += self.text[self.index]
             self._advance()

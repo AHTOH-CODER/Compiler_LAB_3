@@ -236,7 +236,17 @@ class Parser:
                     return
         comma_ok = self._expect_value(',', "Ожидалась ',' между аргументами", "Expected ',' between arguments")
         if not comma_ok:
-            self._sync_after_declaration_error(expect_semicolon=True)
+            if self._check_value(';'):
+                self._sync_after_declaration_error(expect_semicolon=True)
+                return
+            self._recover_to_any({')', ';'})
+            if not self._check_value(')'):
+                self._sync_after_declaration_error(expect_semicolon=True)
+                return
+            self._advance()
+            self._expect_value(';', "Ожидалась ';' в конце объявления", "Expected ';' at end of declaration")
+            if len(self.errors) != start_errors:
+                self._sync_after_declaration_error()
             return
         second_ok = self._expect_number('второй аргумент', 'second argument')
         if not second_ok:

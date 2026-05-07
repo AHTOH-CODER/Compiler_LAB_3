@@ -24,11 +24,11 @@ RPAREN    : ')' ;
 COMMA     : ',' ;
 SEMI      : ';' ;
 
-INTEGER   : [0-9]+ ;
-FLOAT     : [0-9]+ '.' [0-9]+ ;
+INTEGER   : '-'? [0-9]+ ;
+FLOAT     : '-'? [0-9]+ '.' [0-9]+ ;
 
 ID        : [a-zA-Z_] [a-zA-Z0-9_]* ;
 
 NL        : '\r'? '\n' ;
 WS        : [ \t]+ -> skip ;
-COMMENT   : '
+COMMENT   : '//' ~[\r\n]* -> skip ;
